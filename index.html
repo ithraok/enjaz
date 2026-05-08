@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مستعرض مستندات وملفات منوعة</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --primary-color: #007bff;
+        --secondary-color: #1a73e8;
+        --bg-color: #f4f7f6;
+        --panel-bg: #ffffff;
+        --border-color: #e0e4e7;
+        --text-color: #333d47;
+        --light-text: #707b85;
+        --hover-bg: #f0f3f5;
+        --shadow-elevation: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+
+      body.dark-mode {
+        --bg-color: #121212;
+        --panel-bg: #1e1e1e;
+        --border-color: #333333;
+        --text-color: #e0e0e0;
+        --light-text: #b0b0b0;
+        --hover-bg: #2a2a2a;
+        --shadow-elevation: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+
+      /* مهم جدًا لضبط Flex Scroll بشكل صحيح */
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family: "Cairo", sans-serif;
+        margin: 0;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        height: 100vh;
+        overflow: hidden;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      .container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+
+      .sidebar {
+        width: 380px;
+        min-width: 320px;
+        background-color: var(--panel-bg);
+        border-left: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-elevation);
+        height: 100%;
+        min-height: 0;
+      }
+
+      .sidebar-header {
+        padding: 20px 25px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .sidebar-header .top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .sidebar-header h3 {
+        margin: 0;
+        font-size: 1.6em;
+        font-weight: 700;
+      }
+
+      #dark-mode-toggle {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        background: none;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        border-radius: 50%;
+        cursor: pointer;
+      }
+
+      body.dark-mode #file-filter,
+      body.dark-mode #search-input {
+        background-color: #2a2a2a;
+        border-color: #444;
+        color: var(--text-color);
+      }
+
+      #file-filter,
+      #search-input {
+        width: 100%;
+        padding: 12px 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        font-family: "Cairo", sans-serif;
+        font-size: 1em;
+        box-sizing: border-box;
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+      }
+
+      .table-container {
+        overflow: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 0 15px;
+      }
+
+      #file-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        margin-top: 10px;
+      }
+      #file-table thead th {
+        display: none;
+      }
+
+      #file-table tbody tr {
+        cursor: pointer;
+        background-color: var(--panel-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        transition: background-color 0.2s ease, transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      #file-table tbody tr:hover:not(.folder-header) {
+        background-color: var(--hover-bg);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+      }
+
+      #file-table tbody tr.active {
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: 600;
+      }
+      #file-table tbody tr.active i {
+        color: white !important;
+      }
+
+      #file-table td {
+        padding: 15px 12px;
+        vertical-align: middle;
+        font-size: 1em;
+        border-radius: 8px;
+      }
+
+      #file-table td.col-name {
+        white-space: normal;
+        word-wrap: break-word;
+        font-weight: 400;
+      }
+
+      #file-table td.col-type {
+        width: 40px;
+        text-align: center;
+      }
+      #file-table td.col-type i {
+        font-size: 1.6em;
+      }
+
+      /* Accordion */
+      #file-table tbody tr.folder-header {
+        background-color: var(--panel-bg);
+        box-shadow: none;
+        cursor: pointer;
+        margin-top: 15px;
+      }
+      .folder-header-content {
+        padding: 10px 15px !important;
+      }
+      .folder-title {
+        display: flex;
+        align-items: center;
+        font-size: 1.05em;
+        font-weight: 700;
+        color: var(--primary-color);
+      }
+      .folder-title .arrow-icon {
+        margin-left: 10px;
+        transition: transform 0.3s ease;
+        font-size: 0.8em;
+        color: var(--light-text);
+      }
+      .folder-title .folder-icon {
+        margin-left: 10px;
+        color: #f7a01a;
+        font-size: 1.1em;
+      }
+      .folder-title .file-count {
+        font-size: 0.9em;
+        font-weight: 400;
+        color: var(--light-text);
+        margin-right: 10px;
+      }
+      #file-table tr.folder-header[data-is-expanded="true"] .arrow-icon {
+        transform: rotate(-90deg);
+      }
+
+      .main-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0; /* هذا أهم سطر لمنع “اختفاء” محتوى JSON داخل Flex */
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* خلي السكروول داخل #viewer فقط */
+      }
+
+      .viewer-controls {
+        flex: 0 0 auto;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .header-info {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .viewer-controls h2 {
+        margin: 0;
+        font-size: 1.4em;
+        font-weight: 600;
+      }
+
+      .programmer-credit {
+        font-size: 1em;
+        font-weight: 400;
+        color: var(--light-text);
+        white-space: nowrap;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      #download-btn,
+      #open-tab-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 18px;
+        background-color: var(--primary-color);
+        color: white;
+        text-decoration: none;
+        border-radius: 25px;
+        font-size: 1em;
+        font-weight: 600;
+      }
+      #download-btn i,
+      #open-tab-btn i {
+        margin-left: 10px;
+      }
+
+      /* Viewer مضبوط */
+      #viewer {
+        flex: 1 1 auto;
+        min-height: 0; /* مهم جدًا */
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-elevation);
+        overflow: hidden; /* السكروول للداخل (json-viewer) أو iframe */
+        display: flex;
+      }
+
+      /* iframe يبقى متمدّد طبيعيًا */
+      #viewer iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      /* الصور: تحجيم تلقائي + بدون تشويه + بدون سكرول */
+      #viewer img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        margin: auto; /* توسيط داخل الـ viewer */
+        display: block;
+        object-fit: contain; /* مهم: يمنع التمديد */
+      }
+
+      /* الفيديو: نفس منطق الصور */
+      #viewer video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+        display: block;
+      }
+
+      .loader-message {
+        margin: auto;
+        font-size: 1.15em;
+        color: var(--light-text);
+        text-align: center;
+        padding: 20px;
+      }
+
+      /* JSON viewer (سكرول أفقي + عمودي) */
+      .json-viewer {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        width: 100%;
+        height: 100%;
+        padding: 18px;
+        margin: 0;
+        box-sizing: border-box;
+        overflow-x: auto;
+        overflow-y: auto;
+        white-space: pre;
+        direction: ltr;
+        text-align: left;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 0.95em;
+        line-height: 1.55;
+      }
+
+      .sidebar {
+        width: min(380px, 42vw);
+        min-width: 280px;
+        background-color: var(--panel-bg);
+        border-left: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-elevation);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+      @media (max-width: 768px) {
+        .container {
+          flex-direction: column;
+        }
+
+        .sidebar {
+          width: 100%;
+          height: auto;
+          max-height: 50vh;
+          min-height: 220px;
+          position: static;
+          border-left: none;
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        .main-content {
+          padding: 20px;
+          min-height: auto;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="top-row">
+            <h3>📂 فهرس الملفات</h3>
+            <button id="dark-mode-toggle" title="الوضع الداكن / الفاتح">
+              <i class="fa-solid fa-moon"></i>
+            </button>
+          </div>
+
+          <select id="file-filter">
+            <option value="all">عرض الكل</option>
+            <option value="pdf">PDF</option>
+            <option value="doc">Word</option>
+            <option value="xls">Excel</option>
+            <option value="ppt">PowerPoint</option>
+            <option value="img">صور</option>
+            <option value="video">فيديو</option>
+            <option value="audio">صوت</option>
+            <option value="txt">نصي</option>
+            <option value="html">HTML</option>
+            <option value="json">JSON</option>
+          </select>
+
+          <input type="text" id="search-input" placeholder="🔍 ابحث..." />
+        </div>
+
+        <div class="table-container">
+          <table id="file-table">
+            <thead>
+              <tr>
+                <th class="col-name">اسم الملف</th>
+                <th class="col-type">النوع</th>
+              </tr>
+            </thead>
+            <tbody id="file-list"></tbody>
+          </table>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <div class="viewer-controls">
+          <div class="header-info">
+            <h2>مستعرض مستندات وملفات منوعة</h2>
+            <span class="programmer-credit">github</span>
+          </div>
+
+          <div class="action-buttons">
+            <a
+              href="#"
+              id="open-tab-btn"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              فتح في تبويب جديد <i class="fa-solid fa-up-right-from-square"></i>
+            </a>
+
+            <a href="#" id="download-btn" download>
+              تحميل الملف <i class="fa-solid fa-download"></i>
+            </a>
+          </div>
+        </div>
+
+        <div id="viewer">
+          <div class="loader-message">
+            الرجاء اختيار ملف من الفهرس لعرضه<br />
+            (GitHub Pages)
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const fileListElement = document.getElementById("file-list");
+        const viewerElement = document.getElementById("viewer");
+        const downloadBtn = document.getElementById("download-btn");
+        const openTabBtn = document.getElementById("open-tab-btn");
+        const filterElement = document.getElementById("file-filter");
+        const searchElement = document.getElementById("search-input");
+        const darkModeToggle = document.getElementById("dark-mode-toggle");
+
+        const DOCUMENTS_DIR = "documents";
+        const INDEX_URL = `${DOCUMENTS_DIR}/index.json`;
+        const GITHUB_CONFIG = {
+          owner: "",
+          repo: "",
+          branch: "main",
+        };
+
+        const defaultFile = "تعليمات.pdf";
+        const pinnedFiles = ["تعليمات.pdf"];
+        const PINNED_FOLDER = "📌 ملفات مثبتة";
+        const GENERAL_FOLDER = "ملفات عامة";
+
+        function initDarkMode() {
+          const isDark =
+            localStorage.getItem("dark-mode") === "true" ||
+            (window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches &&
+              localStorage.getItem("dark-mode") !== "false");
+
+          document.body.classList.toggle("dark-mode", isDark);
+          darkModeToggle.innerHTML = isDark
+            ? '<i class="fa-solid fa-sun"></i>'
+            : '<i class="fa-solid fa-moon"></i>';
+        }
+
+        darkModeToggle.addEventListener("click", () => {
+          const isDark = !document.body.classList.contains("dark-mode");
+          document.body.classList.toggle("dark-mode", isDark);
+          localStorage.setItem("dark-mode", String(isDark));
+          darkModeToggle.innerHTML = isDark
+            ? '<i class="fa-solid fa-sun"></i>'
+            : '<i class="fa-solid fa-moon"></i>';
+        });
+
+        function toUrlPath(filepath) {
+          return String(filepath).split("/").map(encodeURIComponent).join("/");
+        }
+
+        function normalizePath(p) {
+          p = String(p || "");
+          p = p.replace(new RegExp(`^\\.?\\/*${DOCUMENTS_DIR}\\/`, "i"), "");
+          return p;
+        }
+
+        function escapeHtml(value) {
+          return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        }
+
+        function removeExtension(filename) {
+          const lastDotIndex = String(filename).lastIndexOf(".");
+          return lastDotIndex > 0 ? String(filename).slice(0, lastDotIndex) : filename;
+        }
+
+        function getDisplayName(name) {
+          return String(name)
+            .replace(/^[\u200e\u200f\s]*[0-9٠-٩۰-۹]+[\s._\-–—،)]+/, "")
+            .trim();
+        }
+
+        function getGithubInfo() {
+          if (GITHUB_CONFIG.owner && GITHUB_CONFIG.repo) {
+            return {
+              owner: GITHUB_CONFIG.owner,
+              repo: GITHUB_CONFIG.repo,
+              branch: GITHUB_CONFIG.branch,
+            };
+          }
+
+          const githubPagesSuffix = ".github.io";
+          if (!window.location.hostname.endsWith(githubPagesSuffix)) return null;
+
+          const owner = window.location.hostname.slice(
+            0,
+            -githubPagesSuffix.length
+          );
+          const parts = window.location.pathname.split("/").filter(Boolean);
+          const repo = parts[0] || `${owner}${githubPagesSuffix}`;
+
+          return { owner, repo, branch: GITHUB_CONFIG.branch };
+        }
+
+        function getGithubRawUrl(filepath) {
+          const githubInfo = getGithubInfo();
+          if (!githubInfo || !githubInfo.branch) return "";
+
+          return `https://raw.githubusercontent.com/${githubInfo.owner}/${
+            githubInfo.repo
+          }/${githubInfo.branch}/${DOCUMENTS_DIR}/${toUrlPath(
+            normalizePath(filepath)
+          )}`;
+        }
+
+        function getFileType(filename) {
+          const ext = String(filename).split(".").pop().toLowerCase();
+          if (ext === "pdf") return "pdf";
+          if (["doc", "docx"].includes(ext)) return "doc";
+          if (["xls", "xlsx"].includes(ext)) return "xls";
+          if (["ppt", "pptx"].includes(ext)) return "ppt";
+          if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp"].includes(ext))
+            return "img";
+          if (["mp4", "mov", "webm", "avi", "mkv"].includes(ext))
+            return "video";
+          if (["mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(ext))
+            return "audio";
+          if (ext === "txt") return "txt";
+          if (["html", "htm"].includes(ext)) return "html";
+          if (ext === "json") return "json";
+          return "other";
+        }
+
+        function getFileIconClass(filename) {
+          const ext = String(filename).split(".").pop().toLowerCase();
+          const solid = "fa-solid ";
+          if (ext === "pdf") return solid + "fa-file-pdf";
+          if (["doc", "docx"].includes(ext)) return solid + "fa-file-word";
+          if (["xls", "xlsx"].includes(ext)) return solid + "fa-file-excel";
+          if (["ppt", "pptx"].includes(ext))
+            return solid + "fa-file-powerpoint";
+          if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp"].includes(ext))
+            return solid + "fa-file-image";
+          if (["mp4", "mov", "webm", "avi", "mkv"].includes(ext))
+            return solid + "fa-file-video";
+          if (["mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(ext))
+            return solid + "fa-file-audio";
+          if (ext === "txt") return solid + "fa-file-lines";
+          if (["html", "htm"].includes(ext)) return solid + "fa-file-code";
+          if (ext === "json") return solid + "fa-brackets-curly";
+          return solid + "fa-file";
+        }
+
+        function toggleFolderVisibility(event) {
+          const headerRow = event.currentTarget;
+          const folderName = headerRow.dataset.folderName;
+          const isExpanded = headerRow.dataset.isExpanded === "true";
+
+          document
+            .querySelectorAll("#file-list .folder-header")
+            .forEach((h) => {
+              if (h !== headerRow) {
+                h.dataset.isExpanded = "false";
+                const other = h.dataset.folderName;
+                document
+                  .querySelectorAll(`#file-list tr[data-folder="${other}"]`)
+                  .forEach((r) => (r.style.display = "none"));
+              }
+            });
+
+          if (isExpanded) {
+            headerRow.dataset.isExpanded = "false";
+            document
+              .querySelectorAll(`#file-list tr[data-folder="${folderName}"]`)
+              .forEach((r) => (r.style.display = "none"));
+          } else {
+            headerRow.dataset.isExpanded = "true";
+            document
+              .querySelectorAll(`#file-list tr[data-folder="${folderName}"]`)
+              .forEach((r) => {
+                if (r.dataset.isHiddenBySearch !== "true") r.style.display = "";
+              });
+          }
+        }
+
+        async function loadFilesFromGithub() {
+          const githubInfo = getGithubInfo();
+          if (!githubInfo || !githubInfo.branch) {
+            throw new Error("لا يمكن تحديد مستودع GitHub من رابط الصفحة.");
+          }
+
+          const apiUrl = `https://api.github.com/repos/${githubInfo.owner}/${
+            githubInfo.repo
+          }/git/trees/${encodeURIComponent(githubInfo.branch)}?recursive=1`;
+          const res = await fetch(apiUrl, { cache: "no-store" });
+          if (!res.ok) {
+            throw new Error(`تعذر تحميل قائمة الملفات من GitHub (HTTP ${res.status})`);
+          }
+
+          const data = await res.json();
+          if (!Array.isArray(data.tree)) {
+            throw new Error("استجابة GitHub لا تحتوي على قائمة ملفات صالحة.");
+          }
+
+          const prefix = `${DOCUMENTS_DIR}/`;
+          return data.tree
+            .filter((item) => item.type === "blob" && item.path.startsWith(prefix))
+            .map((item) => normalizePath(item.path))
+            .filter((path) => {
+              const parts = path.split("/");
+              const name = parts[parts.length - 1] || "";
+              return (
+                name &&
+                !name.startsWith(".") &&
+                name.toLowerCase() !== "index.json"
+              );
+            })
+            .map((path) => {
+              const parts = path.split("/");
+              const name = parts[parts.length - 1];
+              const folder = parts.length > 1 ? parts[0] : GENERAL_FOLDER;
+              return { name, path, folder };
+            });
+        }
+
+        async function loadFilesFromIndex() {
+          const res = await fetch(`${INDEX_URL}?v=${Date.now()}`, {
+            cache: "no-store",
+          });
+          if (!res.ok)
+            throw new Error(`تعذر تحميل ${INDEX_URL} (HTTP ${res.status})`);
+
+          const data = await res.json();
+          const files = Array.isArray(data) ? data : data.files || [];
+
+          // إزالة index.json نفسه من القائمة (اختياري)
+          return files
+            .filter((f) => f && f.name && f.path)
+            .filter(
+              (f) =>
+                !(
+                  String(f.name).toLowerCase() === "index.json" &&
+                  String(normalizePath(f.path)).toLowerCase() === "index.json"
+              )
+            );
+        }
+
+        async function loadIndex() {
+          try {
+            return await loadFilesFromGithub();
+          } catch (githubError) {
+            console.info("Using documents/index.json fallback:", githubError);
+            return loadFilesFromIndex();
+          }
+        }
+
+        function renderFoldersAndFiles(filesData) {
+          const pinned = [];
+          const rest = [];
+
+          for (const f of filesData) {
+            const name = String(f.name);
+            const path = normalizePath(f.path);
+            const folder =
+              f.folder ||
+              (path.includes("/") ? path.split("/")[0] : GENERAL_FOLDER);
+
+            const item = { name, path, folder };
+            if (pinnedFiles.includes(name))
+              pinned.push({ ...item, folder: PINNED_FOLDER });
+            else rest.push(item);
+          }
+
+          const all = [...pinned, ...rest];
+
+          const folders = new Map();
+          for (const f of all) {
+            const folder = f.folder || GENERAL_FOLDER;
+            if (!folders.has(folder)) folders.set(folder, []);
+            folders.get(folder).push(f);
+          }
+
+          const folderNames = Array.from(folders.keys()).sort((a, b) => {
+            if (a === PINNED_FOLDER) return -1;
+            if (b === PINNED_FOLDER) return 1;
+            if (a === GENERAL_FOLDER) return -1;
+            if (b === GENERAL_FOLDER) return 1;
+            return a.localeCompare(b, "ar");
+          });
+
+          fileListElement.innerHTML = "";
+          let isFirstFolder = true;
+
+          for (const folderName of folderNames) {
+            // هذا التعديل يرتب الملفات أبجدياً ورقمياً (1 قبل 2، و 2 قبل 10)
+            const folderFiles = folders.get(folderName).sort((a, b) => {
+            return a.name.localeCompare(b.name, "ar", { numeric: true });
+            });
+            const header = document.createElement("tr");
+            header.className = "folder-header";
+            header.dataset.folderName = folderName;
+            header.dataset.isExpanded = isFirstFolder ? "true" : "false";
+
+            header.innerHTML = `
+              <td colspan="2" class="folder-header-content">
+                <div class="folder-title">
+                  <i class="fa-solid fa-chevron-left arrow-icon"></i>
+                  <i class="fa-solid fa-folder-open folder-icon"></i>
+                  <span>${escapeHtml(getDisplayName(folderName))}</span>
+                  <span class="file-count">(${folderFiles.length})</span>
+                </div>
+              </td>
+            `;
+            fileListElement.appendChild(header);
+            header.addEventListener("click", toggleFolderVisibility);
+
+            for (const fileData of folderFiles) {
+              const tr = document.createElement("tr");
+              const fileType = getFileType(fileData.name);
+
+              tr.dataset.filename = fileData.name;
+              tr.dataset.filepath = fileData.path;
+              tr.dataset.filetype = fileType;
+              tr.dataset.folder = folderName;
+              tr.dataset.isHiddenBySearch = "false";
+
+              if (!isFirstFolder) tr.style.display = "none";
+
+              tr.innerHTML = `
+                <td class="col-name">${escapeHtml(
+                  getDisplayName(removeExtension(fileData.name))
+                )}</td>
+                <td class="col-type"><i class="${getFileIconClass(
+                  fileData.name
+                )}"></i></td>
+              `;
+
+              tr.addEventListener("click", () =>
+                displayFile(fileData.name, fileData.path, tr)
+              );
+
+              fileListElement.appendChild(tr);
+            }
+
+            isFirstFolder = false;
+          }
+
+          const defaultRow = Array.from(
+            fileListElement.querySelectorAll("tr:not(.folder-header)")
+          ).find((r) => r.dataset.filename === defaultFile);
+
+          if (defaultRow) defaultRow.click();
+          else {
+            const firstRow = fileListElement.querySelector(
+              "tr:not(.folder-header)"
+            );
+            if (firstRow)
+              displayFile(
+                firstRow.dataset.filename,
+                firstRow.dataset.filepath,
+                firstRow
+              );
+          }
+        }
+
+        function searchAndFilterFiles() {
+          const selectedType = filterElement.value;
+          const searchTerm = searchElement.value.toLowerCase();
+          const rows = document.querySelectorAll(
+            "#file-list tr:not(.folder-header)"
+          );
+
+          const visibleFolders = new Set();
+
+          rows.forEach((row) => {
+            const fileName = (row.dataset.filename || "").toLowerCase();
+            const filePath = (row.dataset.filepath || "").toLowerCase();
+            const fileType = row.dataset.filetype;
+            const folderName = row.dataset.folder;
+
+            const typeMatch =
+              selectedType === "all" || fileType === selectedType;
+            const searchMatch =
+              fileName.includes(searchTerm) || filePath.includes(searchTerm);
+
+            if (typeMatch && searchMatch) {
+              row.style.display = "";
+              row.dataset.isHiddenBySearch = "false";
+              visibleFolders.add(folderName);
+            } else {
+              row.style.display = "none";
+              row.dataset.isHiddenBySearch = "true";
+            }
+          });
+
+          document
+            .querySelectorAll("#file-list .folder-header")
+            .forEach((h) => {
+              const folderName = h.dataset.folderName;
+              const hasVisible = visibleFolders.has(folderName);
+
+              if (searchTerm !== "" || selectedType !== "all") {
+                h.style.display = hasVisible ? "" : "none";
+                h.dataset.isExpanded = hasVisible ? "true" : "false";
+
+                if (hasVisible) {
+                  document
+                    .querySelectorAll(
+                      `#file-list tr[data-folder="${folderName}"]`
+                    )
+                    .forEach((r) => {
+                      if (r.dataset.isHiddenBySearch !== "true")
+                        r.style.display = "";
+                    });
+                }
+              } else {
+                h.style.display = "";
+                const expanded = h.dataset.isExpanded === "true";
+                document
+                  .querySelectorAll(
+                    `#file-list tr[data-folder="${folderName}"]`
+                  )
+                  .forEach((r) => {
+                    r.style.display = expanded ? "" : "none";
+                  });
+              }
+            });
+        }
+
+        async function displayJson(fileUrl) {
+          viewerElement.innerHTML =
+            '<div class="loader-message">جاري تحميل JSON...</div>';
+
+          try {
+            const res = await fetch(`${fileUrl}?v=${Date.now()}`, {
+              cache: "no-store",
+            });
+            const text = await res.text();
+
+            let pretty = text;
+            try {
+              const obj = JSON.parse(text);
+              pretty = JSON.stringify(obj, null, 2);
+            } catch (_) {}
+
+            const pre = document.createElement("pre");
+            pre.className = "json-viewer";
+            pre.textContent = pretty;
+
+            viewerElement.innerHTML = "";
+            viewerElement.appendChild(pre);
+          } catch (e) {
+            viewerElement.innerHTML =
+              '<div class="loader-message" style="color:#e74c3c;">فشل تحميل ملف JSON.</div>';
+          }
+        }
+
+        function displayFile(filename, filepath, activeRow) {
+          document
+            .querySelectorAll("#file-list tr")
+            .forEach((r) => r.classList.remove("active"));
+          activeRow.classList.add("active");
+
+          viewerElement.innerHTML =
+            '<div class="loader-message">جاري تحميل المعاينة...</div>';
+
+          downloadBtn.style.display = "none";
+          openTabBtn.style.display = "none";
+
+          const ext = String(filename).split(".").pop().toLowerCase();
+          const cleanPath = normalizePath(filepath);
+          const encodedPath = toUrlPath(cleanPath);
+          const fileUrl = `documents/${encodedPath}`;
+
+          downloadBtn.href = fileUrl;
+          downloadBtn.style.display = "inline-flex";
+
+          if (["html", "htm"].includes(ext)) {
+            openTabBtn.href = fileUrl;
+            openTabBtn.style.display = "inline-flex";
+          }
+
+          if (ext === "json") {
+            displayJson(fileUrl);
+            return;
+          }
+
+          if (ext === "pdf" || ext === "txt" || ["html", "htm"].includes(ext)) {
+            viewerElement.innerHTML = `<iframe src="${fileUrl}"></iframe>`;
+            return;
+          }
+
+          if (
+            ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp"].includes(ext)
+          ) {
+            viewerElement.innerHTML = `<img src="${fileUrl}" alt="معاينة ${filename}" />`;
+            return;
+          }
+
+          if (["mp4", "mov", "webm", "avi", "mkv"].includes(ext)) {
+            viewerElement.innerHTML = `
+              <video controls style="width:100%; height:100%; background:#000;">
+                <source src="${fileUrl}">
+              </video>`;
+            return;
+          }
+
+          if (["mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(ext)) {
+            viewerElement.innerHTML = `
+              <div class="loader-message" style="width:100%;">
+                <audio controls style="width:80%;">
+                  <source src="${fileUrl}">
+                </audio>
+              </div>`;
+            return;
+          }
+
+          if (
+            [
+              "docx",
+              "pptx",
+              "xlsx",
+              "doc",
+              "ppt",
+              "xls",
+              "dotx",
+              "dotm",
+              "potx",
+              "potm",
+              "xltx",
+              "xltm",
+            ].includes(ext)
+          ) {
+            const rawFileUrl = getGithubRawUrl(cleanPath);
+            if (!rawFileUrl) {
+              viewerElement.innerHTML =
+                '<div class="loader-message">عرض ملفات Office يحتاج نشر الموقع على GitHub Pages أو ضبط بيانات المستودع داخل الكود.</div>';
+              return;
+            }
+            const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
+              rawFileUrl
+            )}`;
+            viewerElement.innerHTML = `<iframe src="${viewerUrl}"></iframe>`;
+            return;
+          }
+
+          viewerElement.innerHTML =
+            '<div class="loader-message">نوع الملف هذا غير مدعوم للعرض.</div>';
+        }
+
+        async function boot() {
+          initDarkMode();
+          try {
+            const files = await loadIndex();
+            if (!files.length) {
+              viewerElement.innerHTML =
+                '<div class="loader-message">لا توجد ملفات داخل documents.</div>';
+              return;
+            }
+            renderFoldersAndFiles(files);
+            filterElement.addEventListener("change", searchAndFilterFiles);
+            searchElement.addEventListener("input", searchAndFilterFiles);
+          } catch (e) {
+            viewerElement.innerHTML = `<div class="loader-message" style="color:#e74c3c;">
+              تعذر قراءة ملفات مجلد <b>documents</b>.<br>
+              عند النشر على GitHub Pages ستقرأ الصفحة الملفات تلقائياً من المستودع.
+              وعند التشغيل المحلي تأكد من تشغيل الصفحة عبر خادم محلي ووجود <b>documents/index.json</b> كخيار احتياطي.<br>${e.message}
+            </div>`;
+          }
+        }
+
+        boot();
+      });
+    </script>
+  </body>
+</html>
