@@ -538,26 +538,6 @@
             .trim();
         }
 
-        function getFolderPath(filepath) {
-          const parts = normalizePath(filepath).split("/").filter(Boolean);
-          parts.pop();
-          return parts.length ? parts.join("/") : GENERAL_FOLDER;
-        }
-
-        function getDisplayPath(folderPath) {
-          return String(folderPath)
-            .split("/")
-            .map(getDisplayName)
-            .filter(Boolean)
-            .join(" / ");
-        }
-
-        function getFileRowsByFolder(folderName) {
-          return Array.from(
-            document.querySelectorAll("#file-list tr:not(.folder-header)")
-          ).filter((row) => row.dataset.folder === folderName);
-        }
-
         function getGithubInfo() {
           if (GITHUB_CONFIG.owner && GITHUB_CONFIG.repo) {
             return {
@@ -640,22 +620,24 @@
               if (h !== headerRow) {
                 h.dataset.isExpanded = "false";
                 const other = h.dataset.folderName;
-                getFileRowsByFolder(other).forEach(
-                  (r) => (r.style.display = "none")
-                );
+                document
+                  .querySelectorAll(`#file-list tr[data-folder="${other}"]`)
+                  .forEach((r) => (r.style.display = "none"));
               }
             });
 
           if (isExpanded) {
             headerRow.dataset.isExpanded = "false";
-            getFileRowsByFolder(folderName).forEach(
-              (r) => (r.style.display = "none")
-            );
+            document
+              .querySelectorAll(`#file-list tr[data-folder="${folderName}"]`)
+              .forEach((r) => (r.style.display = "none"));
           } else {
             headerRow.dataset.isExpanded = "true";
-            getFileRowsByFolder(folderName).forEach((r) => {
-              if (r.dataset.isHiddenBySearch !== "true") r.style.display = "";
-            });
+            document
+              .querySelectorAll(`#file-list tr[data-folder="${folderName}"]`)
+              .forEach((r) => {
+                if (r.dataset.isHiddenBySearch !== "true") r.style.display = "";
+              });
           }
         }
 
@@ -694,7 +676,7 @@
             .map((path) => {
               const parts = path.split("/");
               const name = parts[parts.length - 1];
-              const folder = getFolderPath(path);
+              const folder = parts.length > 1 ? parts[0] : GENERAL_FOLDER;
               return { name, path, folder };
             });
         }
@@ -737,7 +719,9 @@
           for (const f of filesData) {
             const name = String(f.name);
             const path = normalizePath(f.path);
-            const folder = getFolderPath(path);
+            const folder =
+              f.folder ||
+              (path.includes("/") ? path.split("/")[0] : GENERAL_FOLDER);
 
             const item = { name, path, folder };
             if (pinnedFiles.includes(name))
@@ -780,7 +764,7 @@
                 <div class="folder-title">
                   <i class="fa-solid fa-chevron-left arrow-icon"></i>
                   <i class="fa-solid fa-folder-open folder-icon"></i>
-                  <span>${escapeHtml(getDisplayPath(folderName))}</span>
+                  <span>${escapeHtml(getDisplayName(folderName))}</span>
                   <span class="file-count">(${folderFiles.length})</span>
                 </div>
               </td>
@@ -878,17 +862,25 @@
                 h.dataset.isExpanded = hasVisible ? "true" : "false";
 
                 if (hasVisible) {
-                  getFileRowsByFolder(folderName).forEach((r) => {
-                    if (r.dataset.isHiddenBySearch !== "true")
-                      r.style.display = "";
-                  });
+                  document
+                    .querySelectorAll(
+                      `#file-list tr[data-folder="${folderName}"]`
+                    )
+                    .forEach((r) => {
+                      if (r.dataset.isHiddenBySearch !== "true")
+                        r.style.display = "";
+                    });
                 }
               } else {
                 h.style.display = "";
                 const expanded = h.dataset.isExpanded === "true";
-                getFileRowsByFolder(folderName).forEach((r) => {
-                  r.style.display = expanded ? "" : "none";
-                });
+                document
+                  .querySelectorAll(
+                    `#file-list tr[data-folder="${folderName}"]`
+                  )
+                  .forEach((r) => {
+                    r.style.display = expanded ? "" : "none";
+                  });
               }
             });
         }
