@@ -1,10 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>مستعرض مستندات وملفات منوعة</title>
+    <link rel="icon" href="favicon.ico" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -199,6 +199,7 @@
       .folder-title {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         font-size: 1.05em;
         font-weight: 700;
         color: var(--primary-color);
@@ -210,9 +211,23 @@
         color: var(--light-text);
       }
       .folder-title .folder-icon {
-        margin-left: 10px;
+        margin-left: 6px;
         color: #f7a01a;
         font-size: 1.1em;
+      }
+      .folder-path {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .folder-path-part {
+        display: inline-flex;
+        align-items: center;
+      }
+      .folder-separator {
+        color: var(--light-text);
+        font-weight: 400;
       }
       .folder-title .file-count {
         font-size: 0.9em;
@@ -475,6 +490,7 @@
 
         const DOCUMENTS_DIR = "documents";
         const INDEX_URL = `${DOCUMENTS_DIR}/index.json`;
+        const PAGES_INDEX_URL = "documents-index.json";
         const GITHUB_CONFIG = {
           owner: "",
           repo: "",
@@ -536,6 +552,52 @@
           return String(name)
             .replace(/^[\u200e\u200f\s]*[0-9٠-٩۰-۹]+[\s._\-–—،)]+/, "")
             .trim();
+        }
+
+        function getFolderPath(filepath) {
+          const parts = normalizePath(filepath).split("/").filter(Boolean);
+          parts.pop();
+          return parts.length ? parts.join("/") : GENERAL_FOLDER;
+        }
+
+        function getDisplayPath(folderPath) {
+          return String(folderPath)
+            .split("/")
+            .map(getDisplayName)
+            .filter(Boolean)
+            .join(" / ");
+        }
+
+        function getDisplayPathHtml(folderPath) {
+          const parts = String(folderPath)
+            .split("/")
+            .map(getDisplayName)
+            .filter(Boolean);
+
+          return parts
+            .map(
+              (part) => `
+                <span class="folder-path-part">
+                  <i class="fa-solid fa-folder-open folder-icon"></i>
+                  <span>${escapeHtml(part)}</span>
+                </span>`
+            )
+            .join('<span class="folder-separator">/</span>');
+        }
+
+        function getFileRowsByFolder(folderName) {
+          return Array.from(
+            document.querySelectorAll("#file-list tr:not(.folder-header)")
+          ).filter((row) => row.dataset.folder === folderName);
+        }
+
+        function isLocalPage() {
+          return (
+            window.location.protocol === "file:" ||
+            ["", "localhost", "127.0.0.1", "::1"].includes(
+              window.location.hostname
+            )
+          );
         }
 
         function getGithubInfo() {
@@ -620,24 +682,22 @@
               if (h !== headerRow) {
                 h.dataset.isExpanded = "false";
                 const other = h.dataset.folderName;
-                document
-                  .querySelectorAll(`#file-list tr[data-folder="${other}"]`)
-                  .forEach((r) => (r.style.display = "none"));
+                getFileRowsByFolder(other).forEach(
+                  (r) => (r.style.display = "none")
+                );
               }
             });
 
           if (isExpanded) {
             headerRow.dataset.isExpanded = "false";
-            document
-              .querySelectorAll(`#file-list tr[data-folder="${folderName}"]`)
-              .forEach((r) => (r.style.display = "none"));
+            getFileRowsByFolder(folderName).forEach(
+              (r) => (r.style.display = "none")
+            );
           } else {
             headerRow.dataset.isExpanded = "true";
-            document
-              .querySelectorAll(`#file-list tr[data-folder="${folderName}"]`)
-              .forEach((r) => {
-                if (r.dataset.isHiddenBySearch !== "true") r.style.display = "";
-              });
+            getFileRowsByFolder(folderName).forEach((r) => {
+              if (r.dataset.isHiddenBySearch !== "true") r.style.display = "";
+            });
           }
         }
 
@@ -676,19 +736,20 @@
             .map((path) => {
               const parts = path.split("/");
               const name = parts[parts.length - 1];
-              const folder = parts.length > 1 ? parts[0] : GENERAL_FOLDER;
+              const folder = getFolderPath(path);
               return { name, path, folder };
             });
         }
 
-        async function loadFilesFromIndex() {
-          const res = await fetch(`${INDEX_URL}?v=${Date.now()}`, {
+        async function loadFilesFromIndex(indexUrl) {
+          const res = await fetch(`${indexUrl}?v=${Date.now()}`, {
             cache: "no-store",
           });
           if (!res.ok)
-            throw new Error(`تعذر تحميل ${INDEX_URL} (HTTP ${res.status})`);
+            throw new Error(`تعذر تحميل ${indexUrl} (HTTP ${res.status})`);
 
-          const data = await res.json();
+          const text = await res.text();
+          const data = JSON.parse(text.replace(/^\uFEFF/, ""));
           const files = Array.isArray(data) ? data : data.files || [];
 
           // إزالة index.json نفسه من القائمة (اختياري)
@@ -704,11 +765,27 @@
         }
 
         async function loadIndex() {
+          const errors = [];
+          const indexUrls = isLocalPage()
+            ? [INDEX_URL, PAGES_INDEX_URL]
+            : [PAGES_INDEX_URL, INDEX_URL];
+
+          for (const indexUrl of indexUrls) {
+            try {
+              const files = await loadFilesFromIndex(indexUrl);
+              if (files.length) return files;
+              errors.push(`${indexUrl}: لا يحتوي على ملفات`);
+            } catch (indexError) {
+              errors.push(`${indexUrl}: ${indexError.message}`);
+            }
+          }
+
           try {
             return await loadFilesFromGithub();
           } catch (githubError) {
-            console.info("Using documents/index.json fallback:", githubError);
-            return loadFilesFromIndex();
+            errors.push(`GitHub API: ${githubError.message}`);
+            console.info("Document index loading failed:", errors);
+            throw new Error(errors.join(" | "));
           }
         }
 
@@ -719,9 +796,7 @@
           for (const f of filesData) {
             const name = String(f.name);
             const path = normalizePath(f.path);
-            const folder =
-              f.folder ||
-              (path.includes("/") ? path.split("/")[0] : GENERAL_FOLDER);
+            const folder = getFolderPath(path);
 
             const item = { name, path, folder };
             if (pinnedFiles.includes(name))
@@ -763,8 +838,9 @@
               <td colspan="2" class="folder-header-content">
                 <div class="folder-title">
                   <i class="fa-solid fa-chevron-left arrow-icon"></i>
-                  <i class="fa-solid fa-folder-open folder-icon"></i>
-                  <span>${escapeHtml(getDisplayName(folderName))}</span>
+                  <span class="folder-path">${getDisplayPathHtml(
+                    folderName
+                  )}</span>
                   <span class="file-count">(${folderFiles.length})</span>
                 </div>
               </td>
@@ -862,25 +938,17 @@
                 h.dataset.isExpanded = hasVisible ? "true" : "false";
 
                 if (hasVisible) {
-                  document
-                    .querySelectorAll(
-                      `#file-list tr[data-folder="${folderName}"]`
-                    )
-                    .forEach((r) => {
-                      if (r.dataset.isHiddenBySearch !== "true")
-                        r.style.display = "";
-                    });
+                  getFileRowsByFolder(folderName).forEach((r) => {
+                    if (r.dataset.isHiddenBySearch !== "true")
+                      r.style.display = "";
+                  });
                 }
               } else {
                 h.style.display = "";
                 const expanded = h.dataset.isExpanded === "true";
-                document
-                  .querySelectorAll(
-                    `#file-list tr[data-folder="${folderName}"]`
-                  )
-                  .forEach((r) => {
-                    r.style.display = expanded ? "" : "none";
-                  });
+                getFileRowsByFolder(folderName).forEach((r) => {
+                  r.style.display = expanded ? "" : "none";
+                });
               }
             });
         }
