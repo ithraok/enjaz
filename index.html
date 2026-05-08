@@ -1065,12 +1065,14 @@
             return;
           }
 
-          if (ext === "pdf" || ext === "txt" || ["html", "htm"].includes(ext)) {
-            const restrictedUrl =
-              ext === "pdf"
-                ? `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`
-                : fileUrl;
-            viewerElement.innerHTML = `<iframe src="${restrictedUrl}" sandbox="allow-same-origin allow-scripts"></iframe>`;
+          if (ext === "pdf") {
+            const restrictedUrl = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`;
+            viewerElement.innerHTML = `<iframe src="${restrictedUrl}"></iframe>`;
+            return;
+          }
+
+          if (ext === "txt" || ["html", "htm"].includes(ext)) {
+            viewerElement.innerHTML = `<iframe src="${fileUrl}" sandbox="allow-same-origin allow-scripts"></iframe>`;
             return;
           }
 
