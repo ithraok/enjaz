@@ -225,6 +225,30 @@
         display: inline-flex;
         align-items: center;
       }
+      .folder-level-0 {
+        color: #0f6f5c;
+      }
+      .folder-level-1 {
+        color: #7a4f00;
+      }
+      .folder-level-2 {
+        color: #5b5fc7;
+      }
+      .folder-level-3 {
+        color: #8b3a62;
+      }
+      .folder-level-0 .folder-icon {
+        color: #13a084;
+      }
+      .folder-level-1 .folder-icon {
+        color: #f7a01a;
+      }
+      .folder-level-2 .folder-icon {
+        color: #6f75ff;
+      }
+      .folder-level-3 .folder-icon {
+        color: #bd4f83;
+      }
       .folder-separator {
         color: var(--light-text);
         font-weight: 400;
@@ -576,8 +600,11 @@
 
           return parts
             .map(
-              (part) => `
-                <span class="folder-path-part">
+              (part, index) => `
+                <span class="folder-path-part folder-level-${Math.min(
+                  index,
+                  3
+                )}">
                   <i class="fa-solid fa-folder-open folder-icon"></i>
                   <span>${escapeHtml(part)}</span>
                 </span>`
