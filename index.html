@@ -16,6 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap"
       rel="stylesheet"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <style>
       :root {
@@ -394,6 +395,30 @@
         line-height: 1.55;
       }
 
+      .pdf-viewer {
+        flex: 1 1 auto;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        box-sizing: border-box;
+        padding: 18px;
+        background: var(--hover-bg);
+        user-select: none;
+      }
+
+      .pdf-page {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto 18px;
+        background: #fff;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+      }
+
+      .pdf-page:last-child {
+        margin-bottom: 0;
+      }
+
       @media print {
         body {
           display: none !important;
@@ -527,11 +552,18 @@
           branch: "main",
         };
         const VIEW_ONLY_MODE = true;
+        const PDFJS_WORKER_URL =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
         const defaultFile = "تعليمات.pdf";
         const pinnedFiles = ["تعليمات.pdf"];
         const PINNED_FOLDER = "📌 ملفات مثبتة";
         const GENERAL_FOLDER = "ملفات عامة";
+        let activeRenderToken = 0;
+
+        if (window.pdfjsLib) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+        }
 
         function initDarkMode() {
           const isDark =
@@ -1040,7 +1072,77 @@
           }
         }
 
+        async function displayPdf(fileUrl, renderToken) {
+          if (!window.pdfjsLib) {
+            viewerElement.innerHTML =
+              '<div class="loader-message" style="color:#e74c3c;">تعذر تحميل عارض PDF الآمن.</div>';
+            return;
+          }
+
+          viewerElement.innerHTML =
+            '<div class="loader-message">جاري تجهيز ملف PDF للعرض فقط...</div>';
+
+          try {
+            const loadingTask = window.pdfjsLib.getDocument({
+              url: fileUrl,
+              disableAutoFetch: false,
+              disableStream: false,
+            });
+            const pdf = await loadingTask.promise;
+            if (renderToken !== activeRenderToken) return;
+
+            const container = document.createElement("div");
+            container.className = "pdf-viewer";
+            container.addEventListener("contextmenu", (event) =>
+              event.preventDefault()
+            );
+
+            viewerElement.innerHTML = "";
+            viewerElement.appendChild(container);
+
+            const containerWidth = Math.max(container.clientWidth - 36, 320);
+            const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+              if (renderToken !== activeRenderToken) return;
+
+              const page = await pdf.getPage(pageNumber);
+              const baseViewport = page.getViewport({ scale: 1 });
+              const displayScale = Math.min(
+                containerWidth / baseViewport.width,
+                1.6
+              );
+              const viewport = page.getViewport({
+                scale: displayScale * pixelRatio,
+              });
+
+              const canvas = document.createElement("canvas");
+              const context = canvas.getContext("2d", { alpha: false });
+              canvas.className = "pdf-page";
+              canvas.width = Math.floor(viewport.width);
+              canvas.height = Math.floor(viewport.height);
+              canvas.style.width = `${Math.floor(
+                baseViewport.width * displayScale
+              )}px`;
+              canvas.style.height = `${Math.floor(
+                baseViewport.height * displayScale
+              )}px`;
+              canvas.setAttribute("aria-label", `صفحة ${pageNumber}`);
+              canvas.addEventListener("contextmenu", (event) =>
+                event.preventDefault()
+              );
+
+              container.appendChild(canvas);
+              await page.render({ canvasContext: context, viewport }).promise;
+            }
+          } catch (e) {
+            viewerElement.innerHTML =
+              '<div class="loader-message" style="color:#e74c3c;">فشل عرض ملف PDF في وضع العرض فقط.</div>';
+          }
+        }
+
         function displayFile(filename, filepath, activeRow) {
+          const renderToken = ++activeRenderToken;
           document
             .querySelectorAll("#file-list tr")
             .forEach((r) => r.classList.remove("active"));
@@ -1066,8 +1168,7 @@
           }
 
           if (ext === "pdf") {
-            const restrictedUrl = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`;
-            viewerElement.innerHTML = `<iframe src="${restrictedUrl}"></iframe>`;
+            displayPdf(fileUrl, renderToken);
             return;
           }
 
