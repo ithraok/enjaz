@@ -16,8 +16,6 @@
       href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-
     <style>
       :root {
         --primary-color: #0b6b5a;
@@ -554,21 +552,30 @@
           branch: "main",
         };
         const VIEW_ONLY_MODE = true;
+        const PDFJS_LIB_URL =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/build/pdf.mjs";
         const PDFJS_WORKER_URL =
-          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/build/pdf.worker.mjs";
         const PDFJS_CMAP_URL =
-          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/";
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/cmaps/";
         const PDFJS_STANDARD_FONT_URL =
-          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/";
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/standard_fonts/";
 
         const defaultFile = "تعليمات.pdf";
         const pinnedFiles = ["تعليمات.pdf"];
         const PINNED_FOLDER = "📌 ملفات مثبتة";
         const GENERAL_FOLDER = "ملفات عامة";
         let activeRenderToken = 0;
+        let pdfjsLibPromise = null;
 
-        if (window.pdfjsLib) {
-          window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+        async function loadPdfJsLib() {
+          if (!pdfjsLibPromise) {
+            pdfjsLibPromise = import(PDFJS_LIB_URL).then((pdfjsLib) => {
+              pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+              return pdfjsLib;
+            });
+          }
+          return pdfjsLibPromise;
         }
 
         function initDarkMode() {
@@ -1079,17 +1086,14 @@
         }
 
         async function displayPdf(fileUrl, renderToken) {
-          if (!window.pdfjsLib) {
-            viewerElement.innerHTML =
-              '<div class="loader-message" style="color:#e74c3c;">تعذر تحميل عارض PDF الآمن.</div>';
-            return;
-          }
-
           viewerElement.innerHTML =
             '<div class="loader-message">جاري تجهيز ملف PDF للعرض فقط...</div>';
 
           try {
-            const loadingTask = window.pdfjsLib.getDocument({
+            const pdfjsLib = await loadPdfJsLib();
+            if (renderToken !== activeRenderToken) return;
+
+            const loadingTask = pdfjsLib.getDocument({
               url: fileUrl,
               cMapUrl: PDFJS_CMAP_URL,
               cMapPacked: true,
