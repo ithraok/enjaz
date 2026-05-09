@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>إنجازات المعلم/عبدالله بن رشيد الدريبي</title>
+    <title>مستعرض مستندات وملفات منوعة - عرض فقط</title>
     <link rel="icon" href="favicon.ico" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 
     <style>
       :root {
@@ -467,7 +467,7 @@
       <aside class="sidebar">
         <div class="sidebar-header">
           <div class="top-row">
-            <h3>📂 فهرس الإنجازات</h3>
+            <h3>📂 فهرس الملفات</h3>
             <button id="dark-mode-toggle" title="الوضع الداكن / الفاتح">
               <i class="fa-solid fa-moon"></i>
             </button>
@@ -506,7 +506,7 @@
       <main class="main-content">
         <div class="viewer-controls">
           <div class="header-info">
-            <h2>إنجازات المعلم/عبدالله بن رشيد الدريبي</h2>
+            <h2>مستعرض مستندات وملفات منوعة</h2>
             <span class="programmer-credit">عرض فقط</span>
           </div>
 
@@ -555,7 +555,11 @@
         };
         const VIEW_ONLY_MODE = true;
         const PDFJS_WORKER_URL =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+        const PDFJS_CMAP_URL =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/";
+        const PDFJS_STANDARD_FONT_URL =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/";
 
         const defaultFile = "تعليمات.pdf";
         const pinnedFiles = ["تعليمات.pdf"];
@@ -1087,6 +1091,11 @@
           try {
             const loadingTask = window.pdfjsLib.getDocument({
               url: fileUrl,
+              cMapUrl: PDFJS_CMAP_URL,
+              cMapPacked: true,
+              standardFontDataUrl: PDFJS_STANDARD_FONT_URL,
+              useSystemFonts: true,
+              disableFontFace: false,
               disableAutoFetch: false,
               disableStream: false,
             });
