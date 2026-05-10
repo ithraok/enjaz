@@ -19,14 +19,19 @@
     <style>
       :root {
         --primary-color: #0b6b5a;
+        --primary-light: #1a8a76;
         --secondary-color: #2f6f95;
         --bg-color: #eef3f0;
         --panel-bg: #ffffff;
         --border-color: #d8e0dc;
         --text-color: #243331;
         --light-text: #6f7e78;
-        --hover-bg: #f6f8f7;
-        --shadow-elevation: 0 10px 24px rgba(21, 54, 45, 0.08);
+        --hover-bg: #f0f5f2;
+        --input-bg: #f7faf8;
+        --shadow-elevation: 0 10px 24px rgba(21, 54, 45, 0.09);
+        --shadow-sm: 0 2px 8px rgba(21, 54, 45, 0.06);
+        --transition: 0.2s ease;
+        --radius: 8px;
       }
 
       body.dark-mode {
@@ -34,9 +39,11 @@
         --panel-bg: #1a211f;
         --border-color: #2e3a36;
         --text-color: #e5ece8;
-        --light-text: #aab8b2;
+        --light-text: #8fa89f;
         --hover-bg: #232c29;
-        --shadow-elevation: 0 10px 24px rgba(0, 0, 0, 0.38);
+        --input-bg: #1f2826;
+        --shadow-elevation: 0 10px 28px rgba(0, 0, 0, 0.42);
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
       }
 
       /* مهم جدًا لضبط Flex Scroll بشكل صحيح */
@@ -62,7 +69,7 @@
       }
 
       .sidebar {
-        width: 340px;
+        width: min(340px, 36vw);
         min-width: 280px;
         background-color: var(--panel-bg);
         border-left: 1px solid var(--border-color);
@@ -71,15 +78,16 @@
         box-shadow: var(--shadow-elevation);
         height: 100%;
         min-height: 0;
+        transition: background-color 0.3s, border-color 0.3s;
       }
 
       .sidebar-header {
-        padding: 14px 18px;
+        padding: 14px 16px;
         border-bottom: 1px solid var(--border-color);
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        background-color: color-mix(in srgb, var(--panel-bg) 92%, var(--primary-color));
+        gap: 10px;
+        background: var(--panel-bg);
       }
 
       .sidebar-header .top-row {
@@ -88,55 +96,85 @@
         align-items: center;
       }
 
+      .sidebar-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
       .sidebar-header h3 {
         margin: 0;
-        font-size: 1.08rem;
+        font-size: 1.05rem;
         font-weight: 700;
         color: var(--primary-color);
+      }
+
+      .file-count-badge {
+        background-color: var(--primary-color);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 20px;
+        display: none;
+        transition: opacity 0.3s;
       }
 
       #dark-mode-toggle {
         width: 34px;
         height: 34px;
         padding: 0;
-        background: none;
+        background: var(--hover-bg);
         color: var(--text-color);
         border: 1px solid var(--border-color);
         border-radius: 50%;
         cursor: pointer;
+        transition: background-color var(--transition), transform 0.2s, border-color var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
       }
 
-      body.dark-mode #file-filter,
-      body.dark-mode #search-input {
-        background-color: #2a2a2a;
-        border-color: #444;
-        color: var(--text-color);
+      #dark-mode-toggle:hover {
+        background-color: var(--primary-color);
+        color: #fff;
+        border-color: var(--primary-color);
+        transform: rotate(20deg);
       }
 
       #file-filter,
       #search-input {
         width: 100%;
         padding: 8px 11px;
-        border-radius: 6px;
+        border-radius: var(--radius);
         border: 1px solid var(--border-color);
         font-family: "Cairo", sans-serif;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         box-sizing: border-box;
-        background-color: var(--panel-bg);
+        background-color: var(--input-bg);
         color: var(--text-color);
+        transition: border-color var(--transition), box-shadow var(--transition), background-color 0.3s;
+        outline: none;
+      }
+
+      #file-filter:focus,
+      #search-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(11, 107, 90, 0.15);
       }
 
       .table-container {
         overflow: auto;
         flex: 1 1 auto;
         min-height: 0;
-        padding: 0 12px 12px;
+        padding: 0 10px 12px;
       }
 
       #file-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 3px;
+        border-spacing: 0 2px;
         margin-top: 8px;
       }
       #file-table thead th {
@@ -145,20 +183,22 @@
 
       #file-table tbody tr {
         cursor: pointer;
-        background-color: var(--panel-bg);
-        border-radius: 6px;
+        background-color: transparent;
+        border-radius: var(--radius);
         box-shadow: none;
-        transition: background-color 0.18s ease, color 0.18s ease;
+        transition: background-color var(--transition), color var(--transition), transform 0.15s;
       }
 
       #file-table tbody tr:hover:not(.folder-header) {
         background-color: var(--hover-bg);
+        transform: translateX(-2px);
       }
 
       #file-table tbody tr.active {
         background-color: var(--primary-color);
         color: white;
         font-weight: 600;
+        box-shadow: var(--shadow-sm);
       }
       #file-table tbody tr.active i {
         color: white !important;
@@ -167,8 +207,8 @@
       #file-table td {
         padding: 8px 10px;
         vertical-align: middle;
-        font-size: 0.88rem;
-        border-radius: 6px;
+        font-size: 0.875rem;
+        border-radius: var(--radius);
       }
 
       #file-table td.col-name {
@@ -183,8 +223,9 @@
         text-align: center;
       }
       #file-table td.col-type i {
-        font-size: 1.08rem;
+        font-size: 1.05rem;
         color: var(--secondary-color);
+        transition: color var(--transition);
       }
 
       /* Accordion */
@@ -194,36 +235,42 @@
         cursor: pointer;
       }
       .folder-header-content {
-        padding: 11px 8px 5px !important;
+        padding: 10px 6px 5px !important;
       }
       .folder-title {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         font-weight: 700;
         color: var(--primary-color);
+        gap: 4px;
       }
       .folder-title .arrow-icon {
-        margin-left: 7px;
-        transition: transform 0.3s ease;
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         color: var(--light-text);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: rotate(-90deg);
+        margin-left: 6px;
+        flex-shrink: 0;
+      }
+      #file-table tr.folder-header[data-is-expanded="true"] .arrow-icon {
+        transform: rotate(0deg);
       }
       .folder-title .folder-icon {
-        margin-left: 5px;
-        color: #b7791f;
-        font-size: 0.95rem;
+        margin-left: 4px;
+        font-size: 0.9rem;
       }
       .folder-path {
         display: inline-flex;
         align-items: center;
         flex-wrap: wrap;
-        gap: 5px;
+        gap: 4px;
       }
       .folder-path-part {
         display: inline-flex;
         align-items: center;
+        gap: 3px;
       }
       .folder-level-0 {
         color: #075f50;
@@ -249,33 +296,27 @@
       .folder-level-3 .folder-icon {
         color: #9d5273;
       }
-      .folder-separator {
-        color: var(--light-text);
-        font-weight: 400;
-      }
+      .folder-separator { color: var(--light-text); font-weight: 400; }
       .folder-title .file-count {
-        font-size: 0.78rem;
+        font-size: 0.75rem;
         font-weight: 400;
         color: var(--light-text);
-        margin-right: 7px;
-      }
-      #file-table tr.folder-header[data-is-expanded="true"] .arrow-icon {
-        transform: rotate(-90deg);
+        margin-right: 5px;
       }
 
       .main-content {
         flex: 1 1 auto;
         min-width: 0;
         min-height: 0; /* هذا أهم سطر لمنع “اختفاء” محتوى JSON داخل Flex */
-        padding: 22px;
+        padding: 20px 22px;
         display: flex;
         flex-direction: column;
         overflow: hidden; /* خلي السكروول داخل #viewer فقط */
+        gap: 14px;
       }
 
       .viewer-controls {
         flex: 0 0 auto;
-        margin-bottom: 12px;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -285,15 +326,28 @@
 
       .header-info {
         display: flex;
-        align-items: baseline;
-        gap: 10px;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
       }
 
       .viewer-controls h2 {
         margin: 0;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         font-weight: 700;
         color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .viewer-controls h2::before {
+        content: "";
+        display: inline-block;
+        width: 4px;
+        height: 20px;
+        background: var(--primary-color);
+        border-radius: 4px;
       }
 
       .programmer-credit {
@@ -301,6 +355,9 @@
         font-weight: 400;
         color: var(--light-text);
         white-space: nowrap;
+        padding: 3px 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
       }
 
       .action-buttons {
@@ -314,13 +371,17 @@
         display: none;
         align-items: center;
         justify-content: center;
-        padding: 8px 13px;
+        gap: 7px;
+        padding: 8px 14px;
         background-color: var(--primary-color);
         color: white;
         text-decoration: none;
-        border-radius: 6px;
-        font-size: 0.88rem;
+        border-radius: var(--radius);
+        font-size: 0.85rem;
         font-weight: 600;
+        font-family: "Cairo", sans-serif;
+        transition: background-color var(--transition), transform 0.15s, box-shadow var(--transition);
+        box-shadow: 0 2px 6px rgba(11, 107, 90, 0.25);
       }
       #download-btn i,
       #open-tab-btn i {
@@ -333,10 +394,14 @@
         min-height: 0; /* مهم جدًا */
         background: var(--panel-bg);
         border: 1px solid var(--border-color);
-        border-radius: 8px;
+        border-radius: var(--radius);
         box-shadow: var(--shadow-elevation);
         overflow: hidden; /* السكروول للداخل (json-viewer) أو iframe */
         display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s, border-color 0.3s;
+        position: relative;
       }
 
       /* iframe يبقى متمدّد طبيعيًا */
@@ -344,6 +409,7 @@
         width: 100%;
         height: 100%;
         border: 0;
+        display: block;
       }
 
       /* الصور: تحجيم تلقائي + بدون تشويه + بدون سكرول */
@@ -355,6 +421,7 @@
         margin: auto; /* توسيط داخل الـ viewer */
         display: block;
         object-fit: contain; /* مهم: يمنع التمديد */
+        border-radius: 4px;
       }
 
       /* الفيديو: نفس منطق الصور */
@@ -368,10 +435,62 @@
 
       .loader-message {
         margin: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
         font-size: 1rem;
         color: var(--light-text);
         text-align: center;
+        padding: 30px 20px;
+        width: 100%;
+      }
+
+      .loader-message .loader-icon {
+        font-size: 2.5rem;
+        opacity: 0.35;
+        margin-bottom: 4px;
+      }
+
+      .loader-message .loader-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--text-color);
+        opacity: 0.7;
+      }
+
+      .welcome-msg {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        color: var(--light-text);
+        text-align: center;
         padding: 20px;
+        max-width: 360px;
+        margin: auto;
+      }
+
+      .welcome-msg .welcome-icon {
+        font-size: 3rem;
+        color: var(--primary-color);
+        opacity: 0.4;
+        margin-bottom: 8px;
+      }
+
+      .welcome-msg h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-color);
+        opacity: 0.75;
+      }
+
+      .welcome-msg p {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        opacity: 0.7;
       }
 
       /* JSON viewer (سكرول أفقي + عمودي) */
@@ -391,8 +510,9 @@
         text-align: left;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
-        font-size: 0.95em;
-        line-height: 1.55;
+        font-size: 0.93em;
+        line-height: 1.6;
+        color: var(--text-color);
       }
 
       .pdf-viewer {
@@ -425,18 +545,15 @@
         }
       }
 
-      .sidebar {
-        width: min(340px, 36vw);
-        min-width: 280px;
-        background-color: var(--panel-bg);
-        border-left: 1px solid var(--border-color);
-        display: flex;
-        flex-direction: column;
-        box-shadow: var(--shadow-elevation);
-        position: sticky;
-        top: 0;
-        height: 100vh;
+      #file-table tbody tr:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -2px;
       }
+
+      #file-table tbody tr.folder-header:focus {
+        outline-offset: -4px;
+      }
+
       @media (max-width: 768px) {
         .container {
           flex-direction: column;
@@ -445,17 +562,25 @@
         .sidebar {
           width: 100%;
           height: auto;
-          max-height: 50vh;
-          min-height: 220px;
-          position: static;
+          max-height: 48vh;
+          min-height: 200px;
           border-left: none;
           border-bottom: 1px solid var(--border-color);
         }
 
         .main-content {
-          padding: 20px;
-          min-height: auto;
+          padding: 14px 16px;
+          height: calc(52vh);
+          min-height: 0;
         }
+
+        .viewer-controls h2 { font-size: 1rem; }
+      }
+
+      @media (max-width: 480px) {
+        .programmer-credit { display: none; }
+        .viewer-controls h2 { font-size: 0.95rem; }
+        #download-btn, #open-tab-btn { padding: 7px 10px; font-size: 0.8rem; }
       }
     </style>
   </head>
@@ -465,27 +590,30 @@
       <aside class="sidebar">
         <div class="sidebar-header">
           <div class="top-row">
-            <h3>📂 فهرس الملفات</h3>
-            <button id="dark-mode-toggle" title="الوضع الداكن / الفاتح">
+            <div class="sidebar-title-wrap">
+              <h3>📂 فهرس الملفات</h3>
+              <span class="file-count-badge" id="total-file-count"></span>
+            </div>
+            <button id="dark-mode-toggle" title="تبديل الوضع الداكن / الفاتح">
               <i class="fa-solid fa-moon"></i>
             </button>
           </div>
 
           <select id="file-filter">
-            <option value="all">عرض الكل</option>
-            <option value="pdf">PDF</option>
-            <option value="doc">Word</option>
-            <option value="xls">Excel</option>
-            <option value="ppt">PowerPoint</option>
-            <option value="img">صور</option>
-            <option value="video">فيديو</option>
-            <option value="audio">صوت</option>
-            <option value="txt">نصي</option>
-            <option value="html">HTML</option>
-            <option value="json">JSON</option>
+            <option value="all">🗂 عرض الكل</option>
+            <option value="pdf">📄 PDF</option>
+            <option value="doc">📝 Word</option>
+            <option value="xls">📊 Excel</option>
+            <option value="ppt">📑 PowerPoint</option>
+            <option value="img">🖼 صور</option>
+            <option value="video">🎬 فيديو</option>
+            <option value="audio">🎵 صوت</option>
+            <option value="txt">📃 نصي</option>
+            <option value="html">🌐 HTML</option>
+            <option value="json">🔧 JSON</option>
           </select>
 
-          <input type="text" id="search-input" placeholder="🔍 ابحث..." />
+          <input type="text" id="search-input" placeholder="🔍 ابحث عن ملف..." />
         </div>
 
         <div class="table-container">
@@ -504,7 +632,7 @@
       <main class="main-content">
         <div class="viewer-controls">
           <div class="header-info">
-            <h2>مستعرض مستندات وملفات منوعة</h2>
+            <h2>مستعرض المستندات</h2>
             <span class="programmer-credit">عرض فقط</span>
           </div>
 
@@ -525,9 +653,10 @@
         </div>
 
         <div id="viewer">
-          <div class="loader-message">
-            الرجاء اختيار ملف من الفهرس لعرضه<br />
-            (GitHub Pages)
+          <div class="welcome-msg">
+            <i class="fa-regular fa-folder-open welcome-icon"></i>
+            <h3>اختر ملفاً للمعاينة</h3>
+            <p>اضغط على أي ملف من الفهرس على اليمين لعرض محتواه هنا</p>
           </div>
         </div>
       </main>
@@ -542,6 +671,7 @@
         const filterElement = document.getElementById("file-filter");
         const searchElement = document.getElementById("search-input");
         const darkModeToggle = document.getElementById("dark-mode-toggle");
+        const totalCountBadge = document.getElementById("total-file-count");
 
         const DOCUMENTS_DIR = "documents";
         const INDEX_URL = `${DOCUMENTS_DIR}/index.json`;
@@ -771,7 +901,7 @@
             return solid + "fa-file-audio";
           if (ext === "txt") return solid + "fa-file-lines";
           if (["html", "htm"].includes(ext)) return solid + "fa-file-code";
-          if (ext === "json") return solid + "fa-brackets-curly";
+          if (ext === "json") return solid + "fa-file-code";
           return solid + "fa-file";
         }
 
@@ -918,30 +1048,33 @@
           }
 
           const folderNames = Array.from(folders.keys()).sort((a, b) => {
-            if (a === PINNED_FOLDER) return -1;
-            if (b === PINNED_FOLDER) return 1;
-            if (a === GENERAL_FOLDER) return -1;
-            if (b === GENERAL_FOLDER) return 1;
+            if (a === PINNED_FOLDER && b !== PINNED_FOLDER) return -1;
+            if (b === PINNED_FOLDER && a !== PINNED_FOLDER) return 1;
+            if (a === GENERAL_FOLDER && b !== GENERAL_FOLDER) return -1;
+            if (b === GENERAL_FOLDER && a !== GENERAL_FOLDER) return 1;
             return a.localeCompare(b, "ar");
           });
 
           fileListElement.innerHTML = "";
           let isFirstFolder = true;
+          let totalFiles = 0;
 
           for (const folderName of folderNames) {
             // هذا التعديل يرتب الملفات أبجدياً ورقمياً (1 قبل 2، و 2 قبل 10)
             const folderFiles = folders.get(folderName).sort((a, b) => {
             return a.name.localeCompare(b.name, "ar", { numeric: true });
             });
+            totalFiles += folderFiles.length;
             const header = document.createElement("tr");
             header.className = "folder-header";
             header.dataset.folderName = folderName;
             header.dataset.isExpanded = isFirstFolder ? "true" : "false";
+            header.tabIndex = 0;
 
             header.innerHTML = `
               <td colspan="2" class="folder-header-content">
                 <div class="folder-title">
-                  <i class="fa-solid fa-chevron-left arrow-icon"></i>
+                  <i class="fa-solid fa-chevron-down arrow-icon"></i>
                   <span class="folder-path">${getDisplayPathHtml(
                     folderName
                   )}</span>
@@ -951,6 +1084,12 @@
             `;
             fileListElement.appendChild(header);
             header.addEventListener("click", toggleFolderVisibility);
+            header.addEventListener("keydown", (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleFolderVisibility({ currentTarget: header });
+              }
+            });
 
             for (const fileData of folderFiles) {
               const tr = document.createElement("tr");
@@ -961,6 +1100,7 @@
               tr.dataset.filetype = fileType;
               tr.dataset.folder = folderName;
               tr.dataset.isHiddenBySearch = "false";
+              tr.tabIndex = 0;
 
               if (!isFirstFolder) tr.style.display = "none";
 
@@ -976,11 +1116,22 @@
               tr.addEventListener("click", () =>
                 displayFile(fileData.name, fileData.path, tr)
               );
+              tr.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  displayFile(fileData.name, fileData.path, tr);
+                }
+              });
 
               fileListElement.appendChild(tr);
             }
 
             isFirstFolder = false;
+          }
+
+          if (totalFiles > 0) {
+            totalCountBadge.textContent = totalFiles;
+            totalCountBadge.style.display = "inline-block";
           }
 
           const defaultRow = Array.from(
@@ -1003,7 +1154,7 @@
 
         function searchAndFilterFiles() {
           const selectedType = filterElement.value;
-          const searchTerm = searchElement.value.toLowerCase();
+          const searchTerm = searchElement.value.toLowerCase().trim();
           const rows = document.querySelectorAll(
             "#file-list tr:not(.folder-header)"
           );
