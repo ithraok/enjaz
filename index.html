@@ -236,6 +236,8 @@
       }
       .folder-header-content {
         padding: 10px 6px 5px !important;
+        border-right: 4px solid var(--folder-color, var(--primary-color));
+        border-radius: var(--radius);
       }
       .folder-title {
         display: flex;
@@ -248,7 +250,7 @@
       }
       .folder-title .arrow-icon {
         font-size: 0.7rem;
-        color: var(--light-text);
+        color: var(--folder-color, var(--light-text));
         transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
         transform: rotate(-90deg);
         margin-left: 6px;
@@ -271,36 +273,16 @@
         display: inline-flex;
         align-items: center;
         gap: 3px;
+        color: var(--folder-part-color, var(--folder-color, var(--primary-color)));
       }
-      .folder-level-0 {
-        color: #075f50;
-      }
-      .folder-level-1 {
-        color: #7a520b;
-      }
-      .folder-level-2 {
-        color: #385a8a;
-      }
-      .folder-level-3 {
-        color: #7a3b5a;
-      }
-      .folder-level-0 .folder-icon {
-        color: #0b7c68;
-      }
-      .folder-level-1 .folder-icon {
-        color: #b7791f;
-      }
-      .folder-level-2 .folder-icon {
-        color: #4e72a8;
-      }
-      .folder-level-3 .folder-icon {
-        color: #9d5273;
+      .folder-path-part .folder-icon {
+        color: var(--folder-part-color, var(--folder-color, var(--primary-color)));
       }
       .folder-separator { color: var(--light-text); font-weight: 400; }
       .folder-title .file-count {
         font-size: 0.75rem;
         font-weight: 400;
-        color: var(--light-text);
+        color: var(--folder-color, var(--light-text));
         margin-right: 5px;
       }
 
@@ -695,6 +677,27 @@
         const pinnedFiles = ["تعليمات.pdf"];
         const PINNED_FOLDER = "📌 ملفات مثبتة";
         const GENERAL_FOLDER = "ملفات عامة";
+        let folderColorMap = new Map();
+        const FOLDER_COLOR_PALETTE = [
+          "#0f766e",
+          "#b91c1c",
+          "#1d4ed8",
+          "#b45309",
+          "#6d28d9",
+          "#be185d",
+          "#047857",
+          "#c2410c",
+          "#4338ca",
+          "#0e7490",
+          "#a21caf",
+          "#15803d",
+          "#92400e",
+          "#991b1b",
+          "#0369a1",
+          "#7c2d12",
+          "#4c1d95",
+          "#166534",
+        ];
         let activeRenderToken = 0;
         let pdfjsLibPromise = null;
 
@@ -785,6 +788,112 @@
             .trim();
         }
 
+        function getStringHash(value) {
+          let hash = 0;
+          for (const char of String(value)) {
+            hash = (hash * 31 + char.codePointAt(0)) >>> 0;
+          }
+          return hash;
+        }
+
+        function getRootFolder(folderPath) {
+          const parts = String(folderPath).split("/").filter(Boolean);
+          return parts[0] || GENERAL_FOLDER;
+        }
+
+        function buildFolderColorMap(folderNames) {
+          const map = new Map();
+          const usedIndexes = new Set();
+          const rootFolders = [];
+          let previousIndex = -1;
+
+          for (const folderName of folderNames) {
+            const rootFolder = getRootFolder(folderName);
+            if (!rootFolders.includes(rootFolder)) rootFolders.push(rootFolder);
+          }
+
+          for (const rootFolder of rootFolders) {
+            let colorIndex =
+              getStringHash(rootFolder) % FOLDER_COLOR_PALETTE.length;
+
+            if (usedIndexes.size < FOLDER_COLOR_PALETTE.length) {
+              let attempts = 0;
+              while (
+                (usedIndexes.has(colorIndex) || colorIndex === previousIndex) &&
+                attempts < FOLDER_COLOR_PALETTE.length
+              ) {
+                colorIndex = (colorIndex + 1) % FOLDER_COLOR_PALETTE.length;
+                attempts++;
+              }
+              usedIndexes.add(colorIndex);
+            } else if (colorIndex === previousIndex) {
+              colorIndex = (colorIndex + 1) % FOLDER_COLOR_PALETTE.length;
+            }
+
+            map.set(rootFolder, FOLDER_COLOR_PALETTE[colorIndex]);
+            previousIndex = colorIndex;
+          }
+
+          return map;
+        }
+
+        function getFolderColor(folderKey) {
+          const rootFolder = getRootFolder(folderKey);
+          if (folderColorMap.has(rootFolder)) return folderColorMap.get(rootFolder);
+
+          const index = getStringHash(rootFolder) % FOLDER_COLOR_PALETTE.length;
+          return FOLDER_COLOR_PALETTE[index];
+        }
+
+        function getFolderDepth(folderPath) {
+          const parts = String(folderPath).split("/").filter(Boolean);
+          return Math.max(parts.length - 1, 0);
+        }
+
+        function hexToRgb(hex) {
+          const clean = String(hex || "").replace("#", "").trim();
+          const value = clean.length === 3
+            ? clean.split("").map((char) => char + char).join("")
+            : clean;
+
+          if (!/^[0-9a-fA-F]{6}$/.test(value)) return null;
+
+          return {
+            r: parseInt(value.slice(0, 2), 16),
+            g: parseInt(value.slice(2, 4), 16),
+            b: parseInt(value.slice(4, 6), 16),
+          };
+        }
+
+        function rgbToHex({ r, g, b }) {
+          return [r, g, b]
+            .map((channel) =>
+              Math.max(0, Math.min(255, Math.round(channel)))
+                .toString(16)
+                .padStart(2, "0")
+            )
+            .join("");
+        }
+
+        function mixHexColor(color, target, amount) {
+          const from = hexToRgb(color);
+          const to = hexToRgb(target);
+          if (!from || !to) return color;
+
+          const ratio = Math.max(0, Math.min(1, amount));
+          return `#${rgbToHex({
+            r: from.r + (to.r - from.r) * ratio,
+            g: from.g + (to.g - from.g) * ratio,
+            b: from.b + (to.b - from.b) * ratio,
+          })}`;
+        }
+
+        function getFolderShade(folderKey, level = getFolderDepth(folderKey)) {
+          const baseColor = getFolderColor(folderKey);
+          const shadeAmount = Math.min(Math.max(level, 0) * 0.16, 0.42);
+          return mixHexColor(baseColor, "#ffffff", shadeAmount);
+        }
+
         function getFolderPath(filepath) {
           const parts = normalizePath(filepath).split("/").filter(Boolean);
           parts.pop();
@@ -800,20 +909,20 @@
         }
 
         function getDisplayPathHtml(folderPath) {
-          const parts = String(folderPath)
-            .split("/")
-            .map(getDisplayName)
-            .filter(Boolean);
+          const rawParts = String(folderPath).split("/").filter(Boolean);
+          const parts = rawParts
+            .map((part, index) => ({
+              color: getFolderShade(folderPath, index),
+              name: getDisplayName(part),
+            }))
+            .filter((part) => part.name);
 
           return parts
             .map(
-              (part, index) => `
-                <span class="folder-path-part folder-level-${Math.min(
-                  index,
-                  3
-                )}">
+              (part) => `
+                <span class="folder-path-part" style="--folder-part-color: ${part.color};">
                   <i class="fa-solid fa-folder-open folder-icon"></i>
-                  <span>${escapeHtml(part)}</span>
+                  <span>${escapeHtml(part.name)}</span>
                 </span>`
             )
             .join('<span class="folder-separator">/</span>');
@@ -1055,6 +1164,7 @@
             return a.localeCompare(b, "ar");
           });
 
+          folderColorMap = buildFolderColorMap(folderNames);
           fileListElement.innerHTML = "";
           let isFirstFolder = true;
           let totalFiles = 0;
@@ -1070,6 +1180,7 @@
             header.dataset.folderName = folderName;
             header.dataset.isExpanded = isFirstFolder ? "true" : "false";
             header.tabIndex = 0;
+            header.style.setProperty("--folder-color", getFolderShade(folderName));
 
             header.innerHTML = `
               <td colspan="2" class="folder-header-content">
