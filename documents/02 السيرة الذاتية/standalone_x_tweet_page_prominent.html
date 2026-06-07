@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="صفحة مستقلة لعرض تغريدة عبدالله بن رشيد الدريبي على منصة إكس." />
+  <title>تغريدة مستقلة | عبدالله بن رشيد الدريبي</title>
+  <style>
+    :root {
+      --bg-1: #071a2f;
+      --bg-2: #0e3a55;
+      --card: rgba(255, 255, 255, 0.97);
+      --text: #102033;
+      --muted: #637083;
+      --accent: #1d9bf0;
+      --accent-2: #18c3b7;
+      --line: rgba(255, 255, 255, 0.22);
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+      --tweet-width: 550px;
+      --card-padding: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(24, 195, 183, 0.24), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(29, 155, 240, 0.25), transparent 30%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px 12px;
+    }
+
+    .page {
+      /* عرض الصفحة محسوب لاحتضان تغريدة X القياسية مع هامش بسيط جدًا حولها */
+      width: min(calc(var(--tweet-width) + (var(--card-padding) * 2)), 100%);
+    }
+
+    .hero {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 4.5vw, 36px);
+      line-height: 1.25;
+      letter-spacing: -0.4px;
+    }
+
+    .subtitle {
+      margin: 6px auto 0;
+      max-width: 520px;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .tweet-card {
+      position: relative;
+      width: 100%;
+      background: var(--card);
+      border-radius: 20px;
+      padding: var(--card-padding);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.82);
+    }
+
+    .tweet-card::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: 0;
+      top: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+
+    .tweet-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 4px 0 0;
+    }
+
+    /* تقليل الفراغات الافتراضية التي تضيفها منصة X حول التغريدة */
+    .twitter-tweet,
+    .twitter-tweet-rendered {
+      width: var(--tweet-width) !important;
+      max-width: 100% !important;
+      margin: 0 auto !important;
+    }
+
+    .tweet-wrap iframe[id^="twitter-widget"] {
+      width: var(--tweet-width) !important;
+      max-width: 100% !important;
+      margin: 0 auto !important;
+      display: block !important;
+    }
+
+    .fallback {
+      display: none;
+      width: 100%;
+      margin-top: 10px;
+      padding: 13px;
+      border-radius: 14px;
+      background: #f2f7fb;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.8;
+      border: 1px solid #d9e8f5;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 40px;
+      padding: 9px 15px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #0f172a;
+      color: #fff;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+    }
+
+    .btn-secondary {
+      background: #eef6fc;
+      color: #0f4f78;
+      border: 1px solid #d7eaf7;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+    }
+
+    footer {
+      margin-top: 12px;
+      color: rgba(255, 255, 255, 0.88);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    footer a {
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.55);
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --card-padding: 8px;
+      }
+
+      body {
+        align-items: flex-start;
+        padding: 14px 8px;
+      }
+
+      .hero {
+        margin-bottom: 10px;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      .subtitle {
+        font-size: 13px;
+      }
+
+      .tweet-card {
+        border-radius: 16px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero" aria-label="مقدمة الصفحة">
+      <div class="badge">✨ عرض مستقل للتغريدة</div>
+      <h1>تغريدة من الكشكول التقني</h1>
+      <p class="subtitle">
+        صفحة مستقلة لعرض التغريدة بشكل بارز وواضح، مع إمكانية فتحها مباشرة على منصة إكس.
+      </p>
+    </section>
+
+    <section class="tweet-card" aria-label="بطاقة التغريدة">
+      <div class="tweet-wrap">
+        <!--
+          🔁 مكان استبدال رابط التغريدة للعرض داخل الصفحة:
+          ضع رابط التغريدة الجديدة داخل href في السطر التالي فقط.
+          مثال الرابط المناسب: https://x.com/AbuRasheed12/status/رقم_التغريدة
+        -->
+        <blockquote class="twitter-tweet" data-lang="ar" data-dnt="true" data-theme="light" data-width="550" dir="rtl">
+          <a href="https://x.com/AbuRasheed12/status/2063623565514080614"></a>
+        </blockquote>
+      </div>
+
+      <div id="fallback" class="fallback">
+        قد لا تظهر التغريدة داخل الصفحة إذا كان الاتصال بالإنترنت غير متاح، أو إذا حظر المتصفح سكربتات منصة إكس.
+        يمكنك فتح التغريدة من الزر أدناه.
+      </div>
+
+      <div class="actions">
+        <!--
+          🔁 مكان استبدال رابط زر فتح التغريدة:
+          ضع الرابط نفسه المستخدم في الأعلى حتى يفتح الزر التغريدة الجديدة.
+        -->
+        <a class="btn btn-primary" href="https://x.com/AbuRasheed12/status/2063623565514080614" target="_blank" rel="noopener noreferrer">فتح التغريدة في منصة إكس</a>
+        <a class="btn btn-secondary" href="https://t.me/Technical_notebook" target="_blank" rel="noopener noreferrer">زيارة الكشكول التقني</a>
+      </div>
+    </section>
+
+    <footer>
+      <div>برمجة: عبدالله بن رشيد الدريبي</div>
+      <div>محتوى تقني وتعليمي | مبادرات وتجارب رقمية | منصة إكس: <a href="https://x.com/AbuRasheed12" target="_blank" rel="noopener noreferrer">@AbuRasheed12</a></div>
+    </footer>
+  </main>
+
+  <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        const iframe = document.querySelector('iframe[id^="twitter-widget"]');
+        const fallback = document.getElementById('fallback');
+        if (!iframe && fallback) {
+          fallback.style.display = 'block';
+        }
+      }, 4200);
+    });
+  </script>
+</body>
+</html>
